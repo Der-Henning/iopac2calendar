@@ -6,16 +6,14 @@ import requests
 
 
 class IOPAC:
-    def __init__(self, username: str, password: str, url: str):
-        self.username = username
-        self.password = password
-        self.url = url
+    def __init__(self):
+        self.df = pd.DataFrame()
 
-    def login(self) -> pd.DataFrame:
-        uri = urljoin(self.url, 'cgi-bin/di.exe')
+    def login(self, username: str, password: str, url: str, name: str) -> None:
+        uri = urljoin(url, 'cgi-bin/di.exe')
         payload = {
-            'sleKndNr': self.username,
-            'slePw': self.password,
+            'sleKndNr': username,
+            'slePw': password,
             'pshLogin': 'Login'
         }
         response = requests.post(uri, data=payload)
@@ -26,4 +24,5 @@ class IOPAC:
                           attrs={"class": 'SEARCH_LESER'})[0]
         df["Rückgabe am"] = pd.to_datetime(
             df["Rückgabe am"], format="%d.%m.%Y")
-        return df
+        df["Konto"] = name
+        self.df = pd.concat([self.df, df])

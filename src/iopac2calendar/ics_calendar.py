@@ -6,8 +6,8 @@ class Calendar:
         self.calendar = ics.Calendar()
         self.file = file
 
-    def add_event(self, name: str, begin: str):
-        event = ics.Event(name, begin)
+    def add_event(self, name: str, date: str, description: str = ""):
+        event = ics.Event(name, date, description=description)
         event.make_all_day()
         self.calendar.events.add(event)
 
