@@ -13,6 +13,7 @@ readme = "README.md"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
+beautifulsoup4 = "^4.12.2"
 html5lib = "^1.1"
 ics = "^0.7.2"
 lxml = "^4.9.3"
