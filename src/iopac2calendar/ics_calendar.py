@@ -8,6 +8,7 @@ class Calendar:
 
     def add_event(self, name: str, begin: str):
         event = ics.Event(name, begin)
+        event.make_all_day()
         self.calendar.events.add(event)
 
     def write(self):
