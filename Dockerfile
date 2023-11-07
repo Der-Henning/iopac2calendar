@@ -22,7 +22,7 @@ RUN pip install "poetry==$POETRY_VERSION"
 RUN python -m venv /venv
 
 COPY . .
-RUN . /venv/bin/activate && poetry install --no-dev --no-root
+RUN . /venv/bin/activate && poetry install --without dev
 RUN . /venv/bin/activate && poetry build
 
 FROM base as final
