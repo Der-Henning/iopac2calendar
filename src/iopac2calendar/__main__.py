@@ -9,17 +9,11 @@ from iopac2calendar.ics_calendar import Calendar
 from iopac2calendar.iopac import IOPAC
 from iopac2calendar.server import Server
 
+EVENT_NAME = "Bücherei Rückgabe"
 
-def join_events(df: pd.DataFrame):
-    if len(df) > 1:
-        description = "\n".join(
-            [f"{row['Konto']}: '{row['Titel']}'" for _, row in df.iterrows()])
-        return pd.DataFrame([["diverse", description]],
-                            columns=["Titel", "Beschreibung"])
-    else:
-        return pd.DataFrame(
-            [[f"{df.iloc[0]['Konto']}: '{df.iloc[0]['Titel']}'", ""]],
-            columns=["Titel", "Beschreibung"])
+
+def join_events(row: pd.Series):
+    return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]"
 
 
 def make_calendar(ics_path: str):
@@ -34,14 +28,13 @@ def make_calendar(ics_path: str):
     calendar = Calendar(ics_path)
 
     df = (iopac.df
-          .groupby(["Rückgabe am"])
-          .apply(join_events)
-          .droplevel(1)
+          .assign(Beschreibung=lambda df_: df_.apply(join_events, axis=1))
+          .groupby("Rückgabe am")["Beschreibung"]
+          .agg(lambda x: "\n".join(x))
           .reset_index())
 
     for _, row in df.iterrows():
-        event_name = row['Titel']
-        calendar.add_event(event_name, row['Rückgabe am'], row['Beschreibung'])
+        calendar.add_event(EVENT_NAME, row['Rückgabe am'], row['Beschreibung'])
     calendar.write()
 
 
