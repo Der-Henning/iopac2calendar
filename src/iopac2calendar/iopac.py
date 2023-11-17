@@ -6,11 +6,16 @@ import requests
 
 COLUMNS = ["Rückgabe am", "Konto", "Titel", "Medientyp"]
 
+
 class IOPAC:
     def __init__(self):
         self.df = pd.DataFrame(columns=COLUMNS)
 
-    def login(self, username: str, password: str, url: str, name: str) -> None:
+    def login(self,
+              username: str,
+              password: str,
+              url: str,
+              name: str) -> None:
         uri = urljoin(url, 'cgi-bin/di.exe')
         payload = {
             'sleKndNr': username,
@@ -26,4 +31,7 @@ class IOPAC:
         df["Rückgabe am"] = pd.to_datetime(
             df["Rückgabe am"], format="%d.%m.%Y")
         df["Konto"] = name
-        self.df = pd.concat([self.df, df])
+
+        self.df = (df if self.df.empty else
+                   self.df if df.empty else
+                   pd.concat([self.df, df], ignore_index=True))

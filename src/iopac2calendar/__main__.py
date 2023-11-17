@@ -16,7 +16,7 @@ def join_events(row: pd.Series):
     return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]"
 
 
-def make_calendar(ics_path: str):
+def make_calendar(ics_file: str):
     config = Config()
     iopac = IOPAC()
     for name, konto in config.konten.items():
@@ -25,7 +25,7 @@ def make_calendar(ics_path: str):
                     config.bibliotheken.get(
             konto.get("Bibliothek")).get("URL"),
             name)
-    calendar = Calendar(ics_path)
+    calendar = Calendar(ics_file)
 
     df = (iopac.df
           .assign(Beschreibung=lambda df_: df_.apply(join_events, axis=1))
@@ -46,13 +46,16 @@ def main():
 
     port = env.get("PORT", 8080)
     sleep_time = env.get("SLEEP_TIME", 600)
-    ics_path = env.get("ICS_PATH", "iopac.ics")
+    ics_file = env.get("ICS_FILE", "iopac.ics")
+    ics_path = env.get("ICS_PATH", "/iopac.ics")
 
-    server = Server(port)
+    make_calendar(ics_file)
+
+    server = Server(port, ics_file, ics_path)
     server.start()
     while True:
         try:
-            make_calendar(ics_path)
+            make_calendar(ics_file)
             sleep(sleep_time)
         except KeyboardInterrupt:
             break
