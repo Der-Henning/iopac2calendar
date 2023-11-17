@@ -58,4 +58,5 @@ ICS_FILE=iopac.ics  # Where to write the .ics file locally
 ICS_PATH=/iopac.ics # Web path to serve the online calender.
                     # Relevant if you use a reverse proxy for multiple
                     # services without subdomains.
+EVENT_NAME=Bücherei Rückgabe    # Calender event title
 ```
