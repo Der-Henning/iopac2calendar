@@ -47,8 +47,8 @@ def main():
         **os.environ
     }
 
-    port = env.get("PORT", 8080)
-    sleep_time = env.get("SLEEP_TIME", 600)
+    port = int(env.get("PORT", 8080))
+    sleep_time = int(env.get("SLEEP_TIME", 600))
     ics_file = env.get("ICS_FILE", "iopac.ics")
     ics_path = env.get("ICS_PATH", "/iopac.ics")
     event_name = env.get("EVENT_NAME", "Bücherei Rückgabe")
