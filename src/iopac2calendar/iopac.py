@@ -4,10 +4,11 @@ from urllib.parse import urljoin
 import pandas as pd
 import requests
 
+COLUMNS = ["Rückgabe am", "Konto", "Titel", "Medientyp"]
 
 class IOPAC:
     def __init__(self):
-        self.df = pd.DataFrame()
+        self.df = pd.DataFrame(columns=COLUMNS)
 
     def login(self, username: str, password: str, url: str, name: str) -> None:
         uri = urljoin(url, 'cgi-bin/di.exe')

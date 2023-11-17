@@ -7,7 +7,7 @@ ENV PYTHONFAULTHANDLER=1 \
     PATH=/venv/bin:$PATH
 WORKDIR /app
 
-RUN apt-get update
+RUN apt-get update && apt-get upgrade -y
 
 FROM base as builder
 
