@@ -25,9 +25,12 @@ class IOPAC:
         response = requests.post(uri, data=payload)
         buffer = StringIO(response.text)
 
-        df = pd.read_html(buffer, header=0, index_col=None,
-                          encoding='utf-8',
-                          attrs={"class": 'SEARCH_LESER'})[0]
+        try:
+            df = pd.read_html(buffer, header=0, index_col=None,
+                              attrs={"class": 'SEARCH_LESER'})[0]
+        except ValueError:
+            return
+
         df["Rückgabe am"] = pd.to_datetime(
             df["Rückgabe am"], format="%d.%m.%Y")
         df["Konto"] = name
