@@ -2,5 +2,5 @@
 __pycache__
 *.ics
 dist
-*.yaml
+config.yaml
 .DS_Store

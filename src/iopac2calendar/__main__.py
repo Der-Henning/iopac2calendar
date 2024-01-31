@@ -2,10 +2,10 @@ import logging
 import os
 from functools import partial
 from time import sleep
-from requests.exceptions import RequestException
 
 import pandas as pd
 from dotenv import dotenv_values
+from requests.exceptions import RequestException
 
 from iopac2calendar.config import Config
 from iopac2calendar.ics_calendar import Calendar
@@ -24,29 +24,25 @@ def make_calendar(ics_file: str, event_name: str):
     config = Config()
     iopac = IOPAC()
     for name, konto in config.konten.items():
-        iopac.login(konto.get("Kundenummer"),
-                    konto.get("Passwort"),
-                    config.bibliotheken.get(
-            konto.get("Bibliothek")).get("URL"),
-            name)
+        iopac.login(
+            konto.get("Kundenummer"), konto.get("Passwort"), config.bibliotheken.get(konto.get("Bibliothek"), {}).get("URL"), name
+        )
     calendar = Calendar(ics_file)
 
-    df = (iopac.df
-          .assign(Beschreibung=lambda df_: df_.apply(join_events, axis=1))
-          .groupby("Rückgabe am")["Beschreibung"]
-          .agg(lambda x: "\n".join(x))
-          .reset_index())
+    df = (
+        iopac.df.assign(Beschreibung=lambda df_: df_.apply(join_events, axis=1))
+        .groupby("Rückgabe am")["Beschreibung"]
+        .agg(lambda x: "\n".join(x))
+        .reset_index()
+    )
 
     for _, row in df.iterrows():
-        calendar.add_event(event_name, row['Rückgabe am'], row['Beschreibung'])
+        calendar.add_event(event_name, row["Rückgabe am"], row["Beschreibung"])
     calendar.write()
 
 
 def main():
-    env = {
-        **dotenv_values(),
-        **os.environ
-    }
+    env = {**dotenv_values(), **os.environ}
 
     port = int(env.get("PORT", 8080))
     sleep_time = int(env.get("SLEEP_TIME", 600))
@@ -58,7 +54,8 @@ def main():
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.INFO,
         format="%(asctime)s %(levelname)-8s%(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S")
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
     make_cal = partial(make_calendar, ics_file, event_name)
     make_cal()
@@ -84,5 +81,5 @@ def main():
     server.stop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
