@@ -2,6 +2,7 @@ import logging
 import os
 from functools import partial
 from time import sleep
+from requests.exceptions import RequestException
 
 import pandas as pd
 from dotenv import dotenv_values
@@ -74,6 +75,10 @@ def main():
             make_cal()
         except KeyboardInterrupt:
             break
+        except RequestException as exc:
+            log.error(exc)
+        except Exception as exc:
+            log.error(exc)
 
     log.info("Stopping server...")
     server.stop()
