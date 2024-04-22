@@ -16,7 +16,7 @@ log = logging.getLogger("iopac2calendar")
 
 
 def join_events(row: pd.Series):
-    return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]"
+    return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]{' RESERVIERT' if row['Reserviert'] else ''}"
 
 
 def make_calendar(ics_file: str, event_name: str):

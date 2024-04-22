@@ -4,3 +4,5 @@ __pycache__
 dist
 config.yaml
 .DS_Store
+.vscode
+.mypy_cache

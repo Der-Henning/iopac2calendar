@@ -21,8 +21,10 @@ class IOPAC:
             df = pd.read_html(buffer, header=0, index_col=None, attrs={"class": "SEARCH_LESER"})[0]
         except ValueError:
             return
-
-        df["Rückgabe am"] = pd.to_datetime(df["Rückgabe am"], format="%d.%m.%Y")
+        df["Reserviert"] = df["Rückgabe am"].str.contains("reserv.")
+        df["Rückgabe am"] = pd.to_datetime(
+            df["Rückgabe am"].str.extract(r"(\d\d.\d\d.\d\d\d\d)", expand=False), format="%d.%m.%Y"
+        )
         df["Konto"] = name
 
         self.df = df if self.df.empty else self.df if df.empty else pd.concat([self.df, df], ignore_index=True)
