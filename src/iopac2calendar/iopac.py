@@ -18,7 +18,10 @@ class IOPAC:
         response.raise_for_status()
 
         buffer = StringIO(response.text)
-        df = pd.read_html(buffer, header=0, index_col=None, attrs={"class": "SEARCH_LESER"})[0]
+        try:
+            df = pd.read_html(buffer, header=0, index_col=None, attrs={"class": "SEARCH_LESER"})[0]
+        except ValueError:  # no data
+            return
         df["Reserviert"] = df["Rückgabe am"].str.contains("reserv.")
         df["Rückgabe am"] = pd.to_datetime(
             df["Rückgabe am"].str.extract(r"(\d\d.\d\d.\d\d\d\d)", expand=False), format="%d.%m.%Y"
