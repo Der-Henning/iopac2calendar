@@ -1,31 +1,75 @@
+import logging
 from io import StringIO
 from urllib.parse import urljoin
 
+import bs4
 import pandas as pd
-import requests
+from aiohttp import ClientSession, ClientTimeout
 
-COLUMNS = ["Rückgabe am", "Konto", "Titel", "Medientyp"]
+COLUMNS = ["Titel", "Author", "Medientyp", "Verl.", "Rückgabe am", "Auswahl verlängern"]
+
+log = logging.getLogger("iopac2calendar")
+
+
+class IOPACError(Exception):
+    pass
 
 
 class IOPAC:
-    def __init__(self):
-        self.df = pd.DataFrame(columns=COLUMNS)
+    def __init__(self, timeout: float = 30.0):
+        self.session = ClientSession(timeout=ClientTimeout(total=timeout))
+        self._df = pd.DataFrame(columns=COLUMNS)
 
-    def login(self, username: str, password: str, url: str, name: str) -> None:
+    async def fetch_data(self, username: str, password: str, url: str) -> str:
         uri = urljoin(url, "cgi-bin/di.exe")
-        payload = {"sleKndNr": username, "slePw": password, "pshLogin": "Login"}
-        response = requests.post(uri, data=payload, timeout=30)
-        response.raise_for_status()
+        payload = dict(sleKndNr=username, slePw=password, pshLogin="Login")
+        log.debug(f"Fetching data from {uri}")
+        log.debug(f"Payload: {payload}")
+        async with self.session.post(uri, data=payload) as response:
+            log.debug(f"Request headers: {response.request_info.headers}")
+            log.debug(f"Response status: {response.status}")
+            log.debug(f"Response headers: {response.headers}")
+            response.raise_for_status()
+            text = await response.text("latin-1")
+            if bs4.BeautifulSoup(text, "html.parser").text.strip().startswith("Login fehlgeschlagen"):
+                raise IOPACError(f"Login failed for {username}")
+            return text
 
-        buffer = StringIO(response.text)
+    @staticmethod
+    def parse_html(html: str) -> pd.DataFrame:
         try:
-            df = pd.read_html(buffer, header=0, index_col=None, attrs={"class": "SEARCH_LESER"})[0]
+            df = pd.read_html(StringIO(html), header=0, index_col=None, attrs={"class": "SEARCH_LESER"})[0]
         except ValueError:  # no data
-            return
+            return pd.DataFrame(columns=COLUMNS)
         df["Reserviert"] = df["Rückgabe am"].str.contains("reserv.")
         df["Rückgabe am"] = pd.to_datetime(
             df["Rückgabe am"].str.extract(r"(\d\d.\d\d.\d\d\d\d)", expand=False), format="%d.%m.%Y"
-        )
-        df["Konto"] = name
+        ).dt.date
+        return df
 
-        self.df = df if self.df.empty else self.df if df.empty else pd.concat([self.df, df], ignore_index=True)
+    async def get_data(self, konto: str, username: str, password: str, url: str):
+        html = await self.fetch_data(username, password, url)
+        self._df = pd.concat([self._df, self.parse_html(html).assign(Konto=konto)], ignore_index=True)
+
+    @staticmethod
+    def join_events(row: pd.Series):
+        return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]{' RESERVIERT' if row['Reserviert'] else ''}"
+
+    @property
+    def df(self) -> pd.DataFrame:
+        return (
+            self._df.assign(Beschreibung=lambda df_: df_.apply(self.join_events, axis=1))
+            .groupby("Rückgabe am")["Beschreibung"]
+            .agg(lambda x: "\n".join(x))
+            .reset_index()
+        )
+
+    async def close(self):
+        await self.session.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.close()
+        return False

@@ -6,3 +6,4 @@ config.yaml
 .DS_Store
 .vscode
 .mypy_cache
+.env

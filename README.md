@@ -25,11 +25,11 @@ Prequisities: Git and Docker installed
     Konten:
         account1:
             Bibliothek: my-Library
-            Kundenummer: 123456789
+            Kundennummer: 123456789
             Passwort: fh4hf78
         account2:
             Bibliothek: my-Library
-            Kundenummer: 987654321
+            Kundennummer: 987654321
             Passwort: dskdj93n3
     ```
 
@@ -52,11 +52,13 @@ Configure via environment variables or by creating a `.env` file.
 Options:
 
 ```bash
-PORT=8080           # Port of the Web Server
-SLEEP_TIME=600      # Sleep time in seconds between calendar updates
-ICS_FILE=iopac.ics  # Where to write the .ics file locally
-ICS_PATH=/iopac.ics # Web path to serve the online calender.
-                    # Relevant if you use a reverse proxy for multiple
-                    # services without subdomains.
+PORT=8080                       # Port of the Web Server
+SLEEP_TIME=600                  # Sleep time in seconds between calendar updates
+CONFIG_FILE=config.yaml         # Path to iocap configuration file
+ICS_FILE=iopac.ics              # Where to write the .ics file locally
+ICS_PATH=/iopac.ics             # Web path to serve the online calender.
+                                # Relevant if you use a reverse proxy for multiple
+                                # services without subdomains.
 EVENT_NAME=Bücherei Rückgabe    # Calender event title
+DEBUG=true                      # Enable debug log messages
 ```

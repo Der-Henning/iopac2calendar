@@ -11,4 +11,10 @@ services:
     ports:
     - 8080:8080
     environment:
-    - SLEEP_TIME=600
+      TZ: Europe/Berlin
+      SLEEP_TIME: 600
+      PORT: 8080
+      CONFIG_FILE: config.yaml
+      ICS_FILE: iopac.ics
+      ICS_PATH: /iopac.ics
+      EVENT_NAME: Bücherei Rückgabe
