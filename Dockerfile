@@ -8,6 +8,10 @@ ENV PYTHONFAULTHANDLER=1 \
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 FROM base AS builder
 
 ENV PIP_DEFAULT_TIMEOUT=100 \
