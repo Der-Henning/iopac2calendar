@@ -5,7 +5,7 @@ ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1 \
     PATH=/venv/bin:$PATH
-    
+
 WORKDIR /app
 
 FROM base AS builder
@@ -26,6 +26,8 @@ ENV PORT=8080 \
     ICS_PATH=/iopac.ics \
     CONFIG_FILE=/app/config.yaml \
     TIMEOUT=30
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD [ "curl", "-f", "http://localhost:8080/health" ]
 
 COPY --from=builder /venv /venv
 CMD ["python", "-m", "iopac2calendar"]

@@ -6,11 +6,15 @@ class Server:
         self.port = port
         self.ics_file = ics_file
         self.server = web.Application()
-        self.server.router.add_get(ics_path, self.handle)
+        self.server.router.add_get(ics_path, self.ics_handle)
+        self.server.router.add_get("/health", self.health_check)
         self.runner = web.AppRunner(self.server)
 
-    async def handle(self, *_):
+    async def ics_handle(self, *_):
         return web.FileResponse(self.ics_file)
+
+    async def health_check(self, *_):
+        return web.Response(text="OK")
 
     async def start(self) -> None:
         await self.runner.setup()

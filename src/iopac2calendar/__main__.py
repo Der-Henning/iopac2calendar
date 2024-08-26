@@ -50,7 +50,7 @@ async def main():
         format="%(asctime)s %(levelname)-8s%(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    logging.getLogger("aiohttp").setLevel(log_level)
+    logging.getLogger("aiohttp").setLevel(logging.WARNING)
 
     await make_calendar(ics_file, event_name, config_file, timeout)
 
