@@ -20,6 +20,7 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     POETRY_VERSION=1.8.3
 
 RUN apt-get update && apt-get install -y gcc libffi-dev g++
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 RUN pip install "poetry==$POETRY_VERSION" poetry-plugin-bundle
 RUN --mount=type=bind,target=. poetry bundle venv /venv
 
