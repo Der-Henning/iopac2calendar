@@ -19,9 +19,7 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_NO_CACHE_DIR=1 \
     POETRY_VERSION=1.8.3
 
-RUN apt-get update && apt-get install -y gcc libffi-dev g++
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH=/root/.cargo/bin:$PATH
+RUN apt-get update && apt-get install -y gcc libffi-dev g++ cargo
 RUN pip install "poetry==$POETRY_VERSION" poetry-plugin-bundle
 RUN --mount=type=bind,target=. poetry bundle venv /venv
 
