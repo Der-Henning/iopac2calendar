@@ -8,7 +8,7 @@ ENV PYTHONFAULTHANDLER=1 \
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,6 +19,7 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_NO_CACHE_DIR=1 \
     POETRY_VERSION=1.8.3
 
+RUN apt-get update && apt-get install -y gcc libffi-dev g++
 RUN pip install "poetry==$POETRY_VERSION" poetry-plugin-bundle
 RUN --mount=type=bind,target=. poetry bundle venv /venv
 
