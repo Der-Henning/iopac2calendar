@@ -19,7 +19,7 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_NO_CACHE_DIR=1 \
     POETRY_VERSION=1.8.3
 
-RUN apt-get update && apt-get install -y cargo build-essential libffi-dev libssl-dev python3-dev
+# RUN apt-get update && apt-get install -y cargo build-essential libffi-dev libssl-dev python3-dev
 RUN pip install "poetry==$POETRY_VERSION" poetry-plugin-bundle
 RUN --mount=type=bind,target=. poetry bundle venv /venv
 
