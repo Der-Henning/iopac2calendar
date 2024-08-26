@@ -36,7 +36,6 @@ async def main():
     env = {**dotenv_values(), **os.environ}
 
     port = int(env.get("PORT", 8080))
-    host = env.get("HOST", "localhost")
     sleep_time = int(env.get("SLEEP_TIME", 600))
     ics_file = env.get("ICS_FILE", "iopac.ics")
     ics_path = env.get("ICS_PATH", "/iopac.ics")
@@ -55,11 +54,11 @@ async def main():
 
     await make_calendar(ics_file, event_name, config_file, timeout)
 
-    server = Server(host, port, ics_file, ics_path)
+    server = Server(port, ics_file, ics_path)
 
     log.info("Starting server...")
     await server.start()
-    log.info(f"ICS file available at http://{host}:{port}{ics_path}")
+    log.info(f"ICS file available at http://localhost:{port}{ics_path}")
 
     while True:
         try:

@@ -2,8 +2,7 @@ from aiohttp import web
 
 
 class Server:
-    def __init__(self, host: str, port: int, ics_file: str | None = None, ics_path: str | None = None) -> None:
-        self.host = host
+    def __init__(self, port: int, ics_file: str | None = None, ics_path: str | None = None) -> None:
         self.port = port
         self.ics_file = ics_file
         self.server = web.Application()
@@ -15,7 +14,7 @@ class Server:
 
     async def start(self) -> None:
         await self.runner.setup()
-        site = web.TCPSite(self.runner, self.host, self.port)
+        site = web.TCPSite(self.runner, port=self.port)
         await site.start()
 
     async def stop(self) -> None:
