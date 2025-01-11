@@ -53,7 +53,10 @@ class IOPAC:
 
     @staticmethod
     def join_events(row: pd.Series):
-        return f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]{' RESERVIERT' if row['Reserviert'] else ''}"
+        event_str = f"{row['Konto']}: {row['Titel']} [{row['Medientyp']}]"
+        if hasattr(row, "Reserviert") and row["Reserviert"]:
+            event_str += " RESERVIERT"
+        return event_str
 
     @property
     def df(self) -> pd.DataFrame:
