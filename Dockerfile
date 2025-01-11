@@ -17,7 +17,7 @@ FROM base AS builder
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    POETRY_VERSION=1.8.3
+    POETRY_VERSION=2.0.0
 
 # RUN apt-get update && apt-get install -y cargo build-essential libffi-dev libssl-dev python3-dev
 RUN pip install "poetry==$POETRY_VERSION" poetry-plugin-bundle
