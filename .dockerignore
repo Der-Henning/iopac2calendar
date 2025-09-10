@@ -5,3 +5,5 @@
 !LICENSE
 !poetry.lock
 !pyproject.toml
+!Cargo.lock
+!Cargo.toml
