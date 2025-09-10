@@ -196,7 +196,7 @@ fn build_calendar(data: &IopacData, event_name: &str) -> Calendar {
                 format!("{}: {} [{}]{}", r.account, r.title, r.media_type, reserved)
             })
             .join("\n");
-        // Calculate alarm datetime at 09:00 the day before the return date
+        // Calculate local alarm datetime at 09:00 the day before the return date
         let prev_day = return_on.pred_opt().unwrap();
         let alarm_dt = Local
             .from_local_datetime(&prev_day.and_hms_opt(9, 0, 0).unwrap())

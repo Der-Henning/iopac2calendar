@@ -141,27 +141,6 @@ impl Iopac {
                     .or_insert(vec![data]);
             });
 
-        // Test data
-        // data.insert(
-        //     NaiveDate::from_ymd_opt(2025, 9, 9).unwrap(),
-        //     vec![
-        //         IopacDatum {
-        //             account: "Mama".to_string(),
-        //             title: "Ein Buch".to_string(),
-        //             media_type: "Buch".to_string(),
-        //             return_on: NaiveDate::from_ymd_opt(2025, 9, 9).unwrap(),
-        //             reserved: true,
-        //         },
-        //         IopacDatum {
-        //             account: "Papa".to_string(),
-        //             title: "Noch ein Buch".to_string(),
-        //             media_type: "Buch".to_string(),
-        //             return_on: NaiveDate::from_ymd_opt(2025, 9, 9).unwrap(),
-        //             reserved: false,
-        //         },
-        //     ],
-        // );
-
         let mut guard = self.data.write().await;
         *guard = iopac_data;
 
@@ -255,9 +234,6 @@ impl IopacError {
         Self(message.to_string())
     }
 }
-
-unsafe impl Send for IopacError {}
-unsafe impl Sync for IopacError {}
 
 impl std::error::Error for IopacError {}
 
