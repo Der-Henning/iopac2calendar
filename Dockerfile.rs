@@ -1,15 +1,17 @@
 FROM rust:1-alpine AS builder
-ENV RUSTFLAGS="-C strip=symbols"
+ARG RUSTFLAGS="-C strip=symbols"
 
-RUN apk add musl-dev openssl-dev openssl-libs-static
+RUN apk add musl-dev tzdata
 
 WORKDIR /app
 COPY . .
 RUN cargo build --release
 
-
 FROM scratch AS runtime
 ENV RUST_LOG=info
+
+# Copy timezone database for local calendar alerts
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
 # TLS certs for HTTPS (copy from builder)
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
