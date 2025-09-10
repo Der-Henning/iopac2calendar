@@ -1,7 +1,7 @@
 FROM rust:1-alpine AS builder
 ARG RUSTFLAGS="-C strip=symbols"
 
-RUN apk add musl-dev tzdata
+RUN apk add --no-cache musl-dev tzdata
 
 WORKDIR /app
 COPY . .

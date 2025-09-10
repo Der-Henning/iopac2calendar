@@ -40,6 +40,10 @@ struct Args {
     #[arg(long, short, env = "EVENT_NAME", default_value_t = {"Bücherei Rückgabe".to_string()})]
     name: String,
 
+    /// Add alarm for iCalendar events
+    #[arg(long, short, env = "ENABLE_ALARM", default_value_t = false)]
+    alarm: bool,
+
     /// Perform health check on localhost
     #[arg(long, short = 'H')]
     health_check: bool,
@@ -84,7 +88,7 @@ async fn main() -> Result<()> {
         .route("/health", routing::get(health_check))
         .with_state(background_task.clone())
         .route(&args.path, routing::get(get_calendar))
-        .with_state((data, args.name));
+        .with_state((data, args.name, args.alarm));
 
     // Start web-server
     let listener = TcpListener::bind(format!("0.0.0.0:{}", args.port)).await?;
@@ -131,13 +135,13 @@ async fn shutdown_signal() {
     }
 }
 
-type AppState = (Arc<RwLock<IopacData>>, String);
+type AppState = (Arc<RwLock<IopacData>>, String, bool);
 
 // Calender .ics file endpoint handler
 async fn get_calendar(State(state): State<AppState>) -> impl IntoResponse {
     // Read data and build ics file
     let guard = state.0.read().await;
-    let ics = build_calendar(&guard, &state.1).to_string();
+    let ics = build_calendar(&guard, &state.1, state.2).to_string();
     drop(guard);
 
     // Create response
@@ -181,13 +185,20 @@ fn make_uid(data: &str) -> String {
 }
 
 // Build ics calendar from iopac data
-fn build_calendar(data: &IopacData, event_name: &str) -> Calendar {
+fn build_calendar(data: &IopacData, event_name: &str, alarm: bool) -> Calendar {
     let event_name = std::env::var("EVENT_NAME").unwrap_or(event_name.to_string());
     let mut cal = Calendar::new();
     cal.name("IOPAC");
 
     // Create a single event for all items with the same return date
     for (return_on, items) in data {
+        let mut event = Event::new();
+        event
+            .uid(&make_uid(&return_on.to_string()))
+            .class(Class::Public)
+            .summary(&event_name)
+            .all_day(*return_on);
+
         // Aggregate items to list for event body
         let description = items
             .iter()
@@ -196,27 +207,25 @@ fn build_calendar(data: &IopacData, event_name: &str) -> Calendar {
                 format!("{}: {} [{}]{}", r.account, r.title, r.media_type, reserved)
             })
             .join("\n");
-        // Calculate local alarm datetime at 09:00 the day before the return date
-        let prev_day = return_on.pred_opt().unwrap();
-        let alarm_dt = Local
-            .from_local_datetime(&prev_day.and_hms_opt(9, 0, 0).unwrap())
-            .unwrap()
-            .with_timezone(&Utc);
-        // Create the alarm for the event
-        let alarm = Alarm::display("Reminder", alarm_dt)
-            .uid(&make_uid(&(return_on.to_string() + &alarm_dt.to_string())))
-            .done();
+        event.description(&description);
+
+        // Add optional alarm
+        if alarm {
+            // Calculate local alarm datetime at 09:00 the day before the return date
+            let prev_day = return_on.pred_opt().unwrap();
+            let alarm_dt = Local
+                .from_local_datetime(&prev_day.and_hms_opt(9, 0, 0).unwrap())
+                .unwrap()
+                .with_timezone(&Utc);
+            // Create the alarm for the event
+            let alarm = Alarm::display("Reminder", alarm_dt)
+                .uid(&make_uid(&(return_on.to_string() + &alarm_dt.to_string())))
+                .done();
+            event.alarm(alarm);
+        }
+
         // Create and push the Event to the calendar
-        cal.push(
-            Event::new()
-                .uid(&make_uid(&return_on.to_string()))
-                .summary(&event_name)
-                .description(&description)
-                .class(Class::Public)
-                .all_day(*return_on)
-                .alarm(alarm)
-                .done(),
-        );
+        cal.push(event.done());
     }
 
     cal
