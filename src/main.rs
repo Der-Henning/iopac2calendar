@@ -1,6 +1,6 @@
 use anyhow::Result;
 use axum::{Router, extract::State, http::HeaderMap, response::IntoResponse, routing};
-use chrono::{Datelike, Days, Local, TimeZone};
+use chrono::{Local, TimeZone, Utc};
 use clap::Parser;
 use icalendar::{Alarm, Calendar, Class, Component, Event, EventLike};
 use itertools::Itertools;
@@ -197,11 +197,11 @@ fn build_calendar(data: &IopacData, event_name: &str) -> Calendar {
             })
             .join("\n");
         // Calculate alarm datetime at 09:00 the day before the return date
-        let prev_day = return_on.checked_sub_days(Days::new(1)).unwrap();
+        let prev_day = return_on.pred_opt().unwrap();
         let alarm_dt = Local
-            .with_ymd_and_hms(prev_day.year(), prev_day.month0(), prev_day.day0(), 9, 0, 0)
+            .from_local_datetime(&prev_day.and_hms_opt(9, 0, 0).unwrap())
             .unwrap()
-            .to_utc();
+            .with_timezone(&Utc);
         // Create the alarm for the event
         let alarm = Alarm::display("Reminder", alarm_dt)
             .uid(&make_uid(&(return_on.to_string() + &alarm_dt.to_string())))
