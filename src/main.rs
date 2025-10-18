@@ -44,6 +44,10 @@ struct Args {
     #[arg(long, short, env = "ENABLE_ALARM", default_value_t = false)]
     alarm: bool,
 
+    ///Ignore SSL Certificates
+    #[arg(long, env = "IGNORE_SSL", default_value_t = false)]
+    ignore_ssl: bool,
+
     /// Perform health check on localhost
     #[arg(long, short = 'H')]
     health_check: bool,
@@ -73,7 +77,7 @@ async fn main() -> Result<()> {
 
     // Initialize data storage and iopac connector
     let data: Arc<RwLock<IopacData>> = Arc::new(RwLock::new(HashMap::new()));
-    let iopac = Iopac::new(config, data.clone());
+    let iopac = Iopac::new(config, data.clone(), args.ignore_ssl);
 
     // Run update data once and check for errors
     iopac.update_data().await?;

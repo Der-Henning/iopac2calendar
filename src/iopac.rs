@@ -85,9 +85,12 @@ impl Iopac {
     const ENDPOINT_PATH: &str = "cgi-bin/di.exe";
     const TIMEOUT: u64 = 30;
 
-    pub fn new(config: IopacConfig, data: Arc<RwLock<IopacData>>) -> Self {
+    pub fn new(config: IopacConfig, data: Arc<RwLock<IopacData>>, ignore_ssl: bool) -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .danger_accept_invalid_certs(ignore_ssl)
+                .build()
+                .unwrap(),
             config,
             data,
         }
