@@ -16,7 +16,7 @@ pub struct Account {
     pub library: String,
 
     #[serde(rename = "Kundennummer")]
-    pub customer_id: String,
+    pub user_id: String,
 
     #[serde(rename = "Passwort")]
     pub password: String,

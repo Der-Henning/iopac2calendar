@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::NaiveDate;
-use encoding::{DecoderTrap::Ignore, Encoding, all::ISO_8859_1};
+// use encoding::{DecoderTrap::Ignore, Encoding, all::ISO_8859_1};
 use itertools::Itertools;
 use log::info;
 use regex::Regex;
@@ -39,36 +39,48 @@ struct IopacRow {
     reserved: bool,
 }
 
+fn extract_text(html: &str) -> String {
+    let s = scraper::Html::parse_fragment(html)
+        .select(&scraper::Selector::parse("*").unwrap())
+        .flat_map(|el| el.text())
+        .collect::<String>();
+    s.trim().to_string()
+}
+
 impl IopacRow {
     fn try_from(row: table_extract::Row<'_>) -> Result<Self> {
         Ok(IopacRow {
-            title: row
-                .get("Titel&nbsp;")
-                .ok_or(IopacError::new("Couldn't find title column"))?
-                .to_string(),
-            media_type: row
-                .get("Medientyp&nbsp;")
-                .ok_or(IopacError::new("Couldn't find media type column"))?
-                .to_string(),
-            return_on: NaiveDate::parse_from_str(
-                {
-                    let txt = row
-                        .get("Rückgabe am&nbsp;")
-                        .ok_or(IopacError::new("Couldn't find return date column"))?;
-                    Regex::new(r"(\d\d.\d\d.\d\d\d\d)")
-                        .unwrap()
-                        .captures(txt)
-                        .ok_or(IopacError::new("Couldn't find date in date column"))?
-                        .get(0)
-                        .unwrap()
-                        .into()
-                },
-                "%d.%m.%Y",
-            )?,
-            reserved: row
-                .get("Rückgabe am&nbsp;")
-                .ok_or(IopacError::new("Couldn't find return date column"))?
-                .contains("resev."),
+            title: extract_text(
+                row.get("Titel")
+                    .ok_or(IopacError::new("Couldn't find title column"))?,
+            ),
+            media_type: extract_text(
+                row.get("Medientyp")
+                    .ok_or(IopacError::new("Couldn't find media type column"))?,
+            ),
+            return_on: {
+                let txt = extract_text(
+                    row.get("Fällig")
+                        .ok_or(IopacError::new("Couldn't find return date column"))?,
+                );
+                NaiveDate::parse_from_str(
+                    {
+                        Regex::new(r"(\d\d.\d\d.\d\d\d\d)")
+                            .unwrap()
+                            .captures(&txt)
+                            .ok_or(IopacError::new("Couldn't find date in date column"))?
+                            .get(0)
+                            .unwrap()
+                            .into()
+                    },
+                    "%d.%m.%Y",
+                )?
+            },
+            reserved: extract_text(
+                row.get("Verlängern")
+                    .ok_or(IopacError::new("Couldn't find return reserved column"))?,
+            )
+            .contains("resev."),
         })
     }
 }
@@ -82,7 +94,7 @@ pub struct Iopac {
 }
 
 impl Iopac {
-    const ENDPOINT_PATH: &str = "cgi-bin/di.exe";
+    const ENDPOINT_PATH: &str = "cgi-bin/koha/opac-user.pl";
     const TIMEOUT: u64 = 30;
 
     pub fn new(config: IopacConfig, data: Arc<RwLock<IopacData>>, ignore_ssl: bool) -> Self {
@@ -115,7 +127,7 @@ impl Iopac {
                 let library = self.config.libraries.get(&account.library).unwrap();
                 (
                     account_name,
-                    self.fetch_data(&library.url, &account.customer_id, &account.password)
+                    self.fetch_data(&library.url, &account.user_id, &account.password)
                         .await,
                 )
             },
@@ -158,16 +170,17 @@ impl Iopac {
     async fn fetch_data(
         &self,
         base_url: &str,
-        customer_id: &str,
+        user_id: &str,
         password: &str,
     ) -> Result<Option<Vec<IopacRow>>> {
         let url = base_url.to_string() + Iopac::ENDPOINT_PATH;
-        let body = IopacRequestBody::new(customer_id.to_string(), password.to_string());
+        let body = IopacRequestBody::new(user_id.to_string(), password.to_string());
         let body_str = serde_html_form::to_string(body).unwrap();
 
         // Login and return html page containing lend media
-        let response = self.post(&url, body_str).await?.bytes().await?;
-        let response_text = ISO_8859_1.decode(&response, Ignore).unwrap();
+        // let response = self.post(&url, body_str).await?.bytes().await?;
+        // let response_text = ISO_8859_1.decode(&response, Ignore).unwrap();
+        let response_text = self.post(&url, body_str).await?.text().await?;
 
         // Parse html table
         // Return error when login failed
@@ -178,7 +191,7 @@ impl Iopac {
             .text()
             .any(|ele| ele.trim() == "Login fehlgeschlagen")
         {
-            Err(IopacError(format!("Login failed for account {}", customer_id)).into())
+            Err(IopacError(format!("Login failed for account {}", user_id)).into())
         } else {
             parse_table(html)
         }
@@ -187,7 +200,7 @@ impl Iopac {
 
 fn parse_table(html: scraper::Html) -> Result<Option<Vec<IopacRow>>> {
     // Extract table html
-    let selector = scraper::Selector::parse(".SEARCH_LESER").unwrap();
+    let selector = scraper::Selector::parse("#checkoutst").unwrap();
     let tab_html = match html.select(&selector).next() {
         Some(ele) => ele,
         _ => return Ok(None),
@@ -209,22 +222,21 @@ fn parse_table(html: scraper::Html) -> Result<Option<Vec<IopacRow>>> {
 
 #[derive(Debug, Serialize)]
 struct IopacRequestBody {
-    #[serde(rename = "sleKndNr")]
-    customer_id: String,
+    #[serde(rename = "userid")]
+    user_id: String,
 
-    #[serde(rename = "slePw")]
+    #[serde(rename = "password")]
     password: String,
-
-    #[serde(rename = "pshLogin")]
-    login: String,
+    //     #[serde(rename = "pshLogin")]
+    //     login: String,
 }
 
 impl IopacRequestBody {
-    fn new(customer_id: String, password: String) -> Self {
+    fn new(user_id: String, password: String) -> Self {
         Self {
-            customer_id,
+            user_id,
             password,
-            login: "Login".to_string(),
+            // login: "Login".to_string(),
         }
     }
 }
