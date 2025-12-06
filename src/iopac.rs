@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::NaiveDate;
-// use encoding::{DecoderTrap::Ignore, Encoding, all::ISO_8859_1};
 use itertools::Itertools;
 use log::info;
 use regex::Regex;
@@ -39,50 +38,44 @@ struct IopacRow {
     reserved: bool,
 }
 
-fn extract_text(html: &str) -> String {
-    scraper::Html::parse_fragment(html)
+fn extract_text(
+    row: &table_extract::Row<'_>,
+    column: &str,
+) -> std::result::Result<String, IopacError> {
+    let html = row
+        .get(column)
+        .ok_or_else(|| IopacError::new(&format!("Couldn't find column {}", column)))?;
+    Ok(scraper::Html::parse_fragment(html)
         .root_element()
         .text()
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .collect::<Vec<_>>()
-        .join(" ")
+        .join(" "))
 }
 
-impl IopacRow {
+fn find_and_parse_date(txt: &str) -> Result<NaiveDate> {
+    Ok(NaiveDate::parse_from_str(
+        {
+            Regex::new(r"(\d\d.\d\d.\d\d\d\d)")
+                .unwrap()
+                .find(txt)
+                .ok_or_else(|| IopacError::new("Couldn't find date in date column"))?
+                .into()
+        },
+        "%d.%m.%Y",
+    )?)
+}
+
+impl TryFrom<table_extract::Row<'_>> for IopacRow {
+    type Error = anyhow::Error;
+
     fn try_from(row: table_extract::Row<'_>) -> Result<Self> {
         Ok(IopacRow {
-            title: extract_text(
-                row.get("Titel")
-                    .ok_or(IopacError::new("Couldn't find title column"))?,
-            ),
-            media_type: extract_text(
-                row.get("Medientyp")
-                    .ok_or(IopacError::new("Couldn't find media type column"))?,
-            ),
-            return_on: {
-                let txt = extract_text(
-                    row.get("Fällig")
-                        .ok_or(IopacError::new("Couldn't find return date column"))?,
-                );
-                NaiveDate::parse_from_str(
-                    {
-                        Regex::new(r"(\d\d.\d\d.\d\d\d\d)")
-                            .unwrap()
-                            .captures(&txt)
-                            .ok_or(IopacError::new("Couldn't find date in date column"))?
-                            .get(0)
-                            .unwrap()
-                            .into()
-                    },
-                    "%d.%m.%Y",
-                )?
-            },
-            reserved: extract_text(
-                row.get("Verlängern")
-                    .ok_or(IopacError::new("Couldn't find return reserved column"))?,
-            )
-            .contains("resev."),
+            title: extract_text(&row, "Titel")?,
+            media_type: extract_text(&row, "Medientyp")?,
+            return_on: find_and_parse_date(&extract_text(&row, "Fällig")?)?,
+            reserved: extract_text(&row, "Verlängern")?.contains("resev."),
         })
     }
 }
@@ -158,8 +151,7 @@ impl Iopac {
                     .or_insert(vec![data]);
             });
 
-        let mut guard = self.data.write().await;
-        *guard = iopac_data;
+        *self.data.write().await = iopac_data;
 
         // Return error if any occured
         match errors.into_iter().next() {
@@ -180,8 +172,6 @@ impl Iopac {
         let body_str = serde_html_form::to_string(body).unwrap();
 
         // Login and return html page containing lend media
-        // let response = self.post(&url, body_str).await?.bytes().await?;
-        // let response_text = ISO_8859_1.decode(&response, Ignore).unwrap();
         let response_text = self.post(&url, body_str).await?.text().await?;
 
         // Parse html table
@@ -215,10 +205,7 @@ fn parse_table(html: scraper::Html) -> Result<Option<Vec<IopacRow>>> {
     };
 
     // Convert table to Vec<IopacRow>
-    let data = table
-        .into_iter()
-        .map(|row| IopacRow::try_from(row))
-        .try_collect()?;
+    let data = table.into_iter().map(IopacRow::try_from).try_collect()?;
     Ok(Some(data))
 }
 
@@ -226,20 +213,12 @@ fn parse_table(html: scraper::Html) -> Result<Option<Vec<IopacRow>>> {
 struct IopacRequestBody {
     #[serde(rename = "userid")]
     user_id: String,
-
-    #[serde(rename = "password")]
     password: String,
-    //     #[serde(rename = "pshLogin")]
-    //     login: String,
 }
 
 impl IopacRequestBody {
     fn new(user_id: String, password: String) -> Self {
-        Self {
-            user_id,
-            password,
-            // login: "Login".to_string(),
-        }
+        Self { user_id, password }
     }
 }
 
