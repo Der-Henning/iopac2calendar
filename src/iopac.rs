@@ -40,11 +40,13 @@ struct IopacRow {
 }
 
 fn extract_text(html: &str) -> String {
-    let s = scraper::Html::parse_fragment(html)
-        .select(&scraper::Selector::parse("*").unwrap())
-        .flat_map(|el| el.text())
-        .collect::<String>();
-    s.trim().to_string()
+    scraper::Html::parse_fragment(html)
+        .root_element()
+        .text()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 impl IopacRow {
