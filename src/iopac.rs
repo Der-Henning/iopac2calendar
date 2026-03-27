@@ -38,20 +38,17 @@ struct IopacRow {
     reserved: bool,
 }
 
-fn extract_text(
-    row: &table_extract::Row<'_>,
-    column: &str,
-) -> std::result::Result<String, IopacError> {
-    let html = row
-        .get(column)
-        .ok_or_else(|| IopacError::new(&format!("Couldn't find column {}", column)))?;
-    Ok(scraper::Html::parse_fragment(html)
-        .root_element()
-        .text()
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join(" "))
+fn extract_text(row: &table_extract::Row<'_>, column: &str) -> Option<String> {
+    let html = row.get(column)?;
+    Some(
+        scraper::Html::parse_fragment(html)
+            .root_element()
+            .text()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
 }
 
 fn find_and_parse_date(txt: &str) -> Result<NaiveDate> {
@@ -72,10 +69,17 @@ impl TryFrom<table_extract::Row<'_>> for IopacRow {
 
     fn try_from(row: table_extract::Row<'_>) -> Result<Self> {
         Ok(IopacRow {
-            title: extract_text(&row, "Titel")?,
-            media_type: extract_text(&row, "Medientyp")?,
-            return_on: find_and_parse_date(&extract_text(&row, "Fällig")?)?,
-            reserved: extract_text(&row, "Verlängern")?.contains("resev."),
+            title: extract_text(&row, "Titel")
+                .ok_or_else(|| IopacError::new("Couldn't find column Title"))?,
+            media_type: extract_text(&row, "Medientyp")
+                .ok_or_else(|| IopacError::new("Couldn't find column Medientyp"))?,
+            return_on: find_and_parse_date(
+                &extract_text(&row, "Fällig")
+                    .ok_or_else(|| IopacError::new("Couldn't find column Fällig"))?,
+            )?,
+            reserved: extract_text(&row, "Verlängern")
+                .map(|r| r.contains("reserv."))
+                .unwrap_or(false),
         })
     }
 }

@@ -17,10 +17,10 @@ itertools = "0.14"
 log = "0.4"
 md5 = "0.8"
 regex = "1"
-reqwest = { version = "0.12", default-features = false, features = [ "rustls-tls" ]}
-scraper = "0.24"
+reqwest = { version = "0.13", default-features = false, features = [ "default-tls" ]}
+scraper = "0.26"
 serde = { version = "1", features = [ "derive" ] }
-serde_html_form = "0.2"
+serde_html_form = "0.4"
 serde_yaml = "0.9"
 table-extract = "0.2"
 tokio = { version = "1", features = [ "macros", "rt-multi-thread", "signal" ] }
