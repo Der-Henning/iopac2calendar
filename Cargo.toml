@@ -17,7 +17,7 @@ itertools = "0.14"
 log = "0.4"
 md5 = "0.8"
 regex = "1"
-reqwest = { version = "0.13", default-features = false, features = [ "default-tls" ]}
+reqwest = "0.13"
 scraper = "0.26"
 serde = { version = "1", features = [ "derive" ] }
 serde_html_form = "0.4"
